@@ -1,6 +1,7 @@
 from pathlib import Path
 import os
 from datetime import timedelta
+import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -78,18 +79,25 @@ TEMPLATES = [
 WSGI_APPLICATION = 'server.wsgi.application'
 
 # ================================
-# DATABASE (Cloud + Local)
+# DATABASE (Render + Local)
 # ================================
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ.get("DB_NAME", "invoice_db"),
-        "USER": os.environ.get("DB_USER", "postgres"),
-        "PASSWORD": os.environ.get("DB_PASSWORD", "postgres123"),
-        "HOST": os.environ.get("DB_HOST", "localhost"),
-        "PORT": os.environ.get("DB_PORT", "5432"),
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+if DATABASE_URL:
+    DATABASES = {
+        "default": dj_database_url.parse(DATABASE_URL)
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": "invoice_db",
+            "USER": "postgres",
+            "PASSWORD": "postgres123",
+            "HOST": "localhost",
+            "PORT": "5432",
+        }
+    }
 
 # ================================
 # AUTH
