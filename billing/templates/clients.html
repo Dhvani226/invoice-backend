@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Add Client</title>
+
+<style>
+body{
+    margin:0;
+    background:#f3f3f3;
+    font-family:Segoe UI, Arial;
+}
+
+.navbar{
+    background:white;
+    border-bottom:2px solid black;
+    padding:15px 30px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.navbar h2{margin:0;}
+
+.navbar a{
+    margin-right:15px;
+    color:black;
+    text-decoration:none;
+    font-weight:bold;
+}
+
+.logout{
+    border:1px solid black;
+    background:white;
+    padding:6px 12px;
+    cursor:pointer;
+}
+
+.container{
+    max-width:700px;
+    margin:40px auto;
+    padding:20px;
+}
+
+.card{
+    background:white;
+    border:1px solid black;
+    padding:25px;
+}
+
+h3{
+    margin-bottom:20px;
+}
+
+input, textarea{
+    width:100%;
+    padding:10px;
+    border:1px solid black;
+    margin-bottom:15px;
+    font-size:14px;
+}
+
+button{
+    border:1px solid black;
+    background:white;
+    padding:8px 16px;
+    cursor:pointer;
+    font-weight:bold;
+}
+
+.actions{
+    display:flex;
+    justify-content:space-between;
+    margin-top:20px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="navbar">
+    <h2>Invoice App</h2>
+    <div>
+        <a href="/dashboard/">Dashboard</a>
+        <a href="/manage-clients/">Clients</a>
+        <a href="/manage-products/">Products</a>
+        <button class="logout" onclick="logout()">Logout</button>
+    </div>
+</div>
+
+<div class="container">
+
+<div class="card">
+    <h3>Add Client</h3>
+
+    <input id="name" placeholder="Client Name" required>
+    <input id="email" placeholder="Email">
+    <input id="phone" placeholder="Phone">
+    <textarea id="address" placeholder="Address"></textarea>
+
+    <div class="actions">
+        <button onclick="saveClient()">Save Client</button>
+        <button onclick="location.href='/dashboard/'">Cancel</button>
+    </div>
+</div>
+
+</div>
+
+<script>
+const API = "/api/";
+
+function getAuth(){
+    return { "Authorization": "Bearer " + localStorage.getItem("token") };
+}
+
+function saveClient(){
+    fetch(API + "clients/", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            ...getAuth()
+        },
+        body: JSON.stringify({
+            name: document.getElementById("name").value,
+            email: document.getElementById("email").value,
+            phone: document.getElementById("phone").value,
+            address: document.getElementById("address").value
+        })
+    })
+    .then(res=>{
+        if(!res.ok) throw "Error saving client";
+        return res.json();
+    })
+    .then(()=>{
+        alert("Client added");
+        location.href="/dashboard/";
+    })
+    .catch(err=>{
+        alert("Failed: " + err);
+    });
+}
+
+function logout(){
+    localStorage.clear();
+    location.href="/";
+}
+</script>
+
+</body>
+</html>

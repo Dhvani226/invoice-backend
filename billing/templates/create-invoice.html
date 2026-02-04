@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Create Invoice</title>
+<style>
+body{margin:0;font-family:Arial;background:#fff;color:#000;}
+.navbar{background:#000;padding:10px 20px;color:white;display:flex;justify-content:space-between;align-items:center;}
+.navbar a{color:white;text-decoration:none;margin-right:15px;font-size:14px;}
+.navbar button{background:#fff;color:#000;border:1px solid #000;padding:4px 8px;font-size:12px;cursor:pointer;}
+
+.container{display:grid;grid-template-columns:200px 1fr;gap:15px;max-width:900px;margin:20px auto;padding:0 10px;}
+.panel{background:#f9f9f9;border:1px solid #ccc;padding:15px;}
+h3{margin-bottom:10px;font-size:16px;}
+input,select,textarea{width:100%;padding:6px;border:1px solid #ccc;margin-bottom:8px;font-size:14px;}
+.product-row{display:flex;align-items:center;margin-bottom:8px;gap:5px;}
+.product-row input, .product-row select{flex:1;padding:4px;font-size:14px;}
+.product-row button{flex:0 0 auto;background:#000;color:#fff;border:none;padding:3px 6px;font-size:12px;cursor:pointer;}
+label{font-weight:normal;font-size:12px;display:flex;align-items:center;gap:3px;}
+.row{display:flex;justify-content:space-between;margin-bottom:5px;font-size:14px;}
+.row.total{font-weight:bold;font-size:16px;}
+button.mini{padding:4px 6px;font-size:12px;}
+</style>
+</head>
+<body>
+
+<div class="navbar">
+    <div><b>Invoice App</b></div>
+    <div>
+        <a href="/dashboard/">Dashboard</a>
+        <button onclick="logout()">Logout</button>
+    </div>
+</div>
+
+<div class="container">
+
+<!-- SIDEBAR: BUSINESS DETAILS -->
+<div class="panel">
+<h3>Bill From</h3>
+<input type="text" id="businessName" placeholder="Business/Company Name">
+<input type="text" id="businessAddress" placeholder="Address">
+<input type="text" id="businessEmail" placeholder="Email">
+<input type="text" id="businessPhone" placeholder="Phone">
+<button class="mini" onclick="saveBusinessDetails()">Save</button>
+</div>
+
+<!-- INVOICE PANEL -->
+<div class="panel">
+<h3>Create Invoice</h3>
+
+<label>Select Client</label>
+<select id="clientSelect"></select>
+<button class="mini" onclick="addNewClient()">+ Add Client</button>
+
+<h3>Products</h3>
+<div id="invoiceItems"></div>
+<button class="mini" onclick="addProductRow()">+ Add Product</button>
+
+<hr>
+<div class="row"><span>Subtotal</span><span>₹ <span id="sub">0</span></span></div>
+<div class="row"><span>SGST</span><span>₹ <span id="sgstTotal">0</span></span></div>
+<div class="row"><span>CGST</span><span>₹ <span id="cgstTotal">0</span></span></div>
+<div class="row"><span>Cess</span><span>₹ <span id="cessTotal">0</span></span></div>
+<div class="row total"><span>Total</span><span>₹ <span id="total">0</span></span></div>
+
+<button class="mini" onclick="saveInvoice()">Save Invoice</button>
+</div>
+
+</div>
+
+<script>
+let clients=[], products=[], invoiceItems=[], businessDetails={};
+
+async function load(){
+    clients = await fetch("/api/clients/", {headers:{Authorization:"Bearer "+localStorage.getItem("token")}}).then(r=>r.json());
+    products = await fetch("/api/products/", {headers:{Authorization:"Bearer "+localStorage.getItem("token")}}).then(r=>r.json());
+    renderClients();
+}
+load();
+
+function renderClients(){
+    const sel=document.getElementById("clientSelect");
+    sel.innerHTML="<option value=''>Select Client</option>";
+    clients.forEach(c=>sel.innerHTML+=`<option value="${c.id}">${c.name}</option>`);
+}
+
+function addProductRow(){
+    invoiceItems.push({
+        productId:null,
+        price:0,
+        qty:1,
+        sgst:0,
+        cgst:0,
+        cess:0,
+        sgstIncluded:false
+    });
+    renderInvoice();
+}
+
+function renderInvoice(){
+    const div=document.getElementById("invoiceItems");
+    div.innerHTML="";
+    let sub=0, sgstTotal=0, cgstTotal=0, cessTotal=0;
+
+    invoiceItems.forEach((item, idx)=>{
+        div.innerHTML+=`
+        <div class="product-row">
+            <select onchange="updateProduct(${idx}, this)">
+                <option value="">Select Product</option>
+                ${products.map(p=>`
+                    <option value="${p.id}" 
+                        data-price="${p.price}" 
+                        data-sgst="${p.sgst}" 
+                        data-cgst="${p.cgst}" 
+                        data-cess="${p.cess}">
+                        ${p.name} ₹${p.price}
+                    </option>`).join("")}
+            </select>
+
+            <input type="number" value="${item.qty}" min="1" onchange="updateQty(${idx},this.value)">
+
+            <label>
+                <input type="checkbox" ${item.sgstIncluded?"checked":""}
+                onchange="toggleSgst(${idx},this.checked)"> SGST Included
+            </label>
+
+            <button onclick="removeProductRow(${idx})">-</button>
+            <div>₹${calculateItemTotal(item).toFixed(2)}</div>
+        </div>
+        `;
+
+        sub += item.price * item.qty;
+        sgstTotal += item.sgstIncluded ? 0 : item.sgst * item.qty;
+        cgstTotal += item.cgst * item.qty;
+        cessTotal += item.cess * item.qty;
+    });
+
+    document.getElementById("sub").textContent=sub.toFixed(2);
+    document.getElementById("sgstTotal").textContent=sgstTotal.toFixed(2);
+    document.getElementById("cgstTotal").textContent=cgstTotal.toFixed(2);
+    document.getElementById("cessTotal").textContent=cessTotal.toFixed(2);
+    document.getElementById("total").textContent=(sub+sgstTotal+cgstTotal+cessTotal).toFixed(2);
+}
+
+function updateProduct(idx, sel){
+    const p = products.find(x=>x.id==sel.value);
+    if(!p) return;
+
+    invoiceItems[idx].productId = p.id;
+    invoiceItems[idx].price = parseFloat(p.price);
+    invoiceItems[idx].sgst = parseFloat(p.sgst||0);
+    invoiceItems[idx].cgst = parseFloat(p.cgst||0);
+    invoiceItems[idx].cess = parseFloat(p.cess||0);
+    renderInvoice();
+}
+
+function updateQty(idx,val){
+    invoiceItems[idx].qty=parseInt(val)||1;
+    renderInvoice();
+}
+
+function toggleSgst(idx,val){
+    invoiceItems[idx].sgstIncluded=val;
+    renderInvoice();
+}
+
+function calculateItemTotal(i){
+    return i.price*i.qty + 
+          (i.sgstIncluded?0:i.sgst*i.qty) + 
+           i.cgst*i.qty + 
+           i.cess*i.qty;
+}
+
+function removeProductRow(i){
+    invoiceItems.splice(i,1);
+    renderInvoice();
+}
+
+async function saveInvoice(){
+    const clientId = document.getElementById("clientSelect").value;
+    if(!clientId) return alert("Select client");
+
+    const today = new Date();
+    const due = new Date();
+    due.setDate(today.getDate()+7);
+
+    const payload = {
+        invoice_number: "INV-"+Date.now(),
+        client: clientId,
+        due_date: due.toISOString().split("T")[0],
+        items: invoiceItems.map(i=>({
+            product: i.productId,
+            quantity: i.qty,
+            price: i.price,
+            sgst: i.sgstIncluded?0:i.sgst,
+            cgst: i.cgst,
+            cess: i.cess,
+            total: calculateItemTotal(i)
+        }))
+    };
+
+    const res = await fetch("/api/invoices/",{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json",
+            Authorization:"Bearer "+localStorage.getItem("token")
+        },
+        body:JSON.stringify(payload)
+    });
+
+    if(!res.ok){
+        const err = await res.json();
+        alert(JSON.stringify(err,null,2));
+        return;
+    }
+
+    alert("Invoice saved successfully");
+    location.href="/dashboard/";
+}
+</script>
+
+
+</body>
+</html>

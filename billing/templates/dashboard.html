@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Dashboard</title>
+
+<style>
+body{
+    margin:0;
+    background:#f3f3f3;
+    font-family:Segoe UI, Arial;
+}
+
+.navbar{
+    background:white;
+    border-bottom:2px solid black;
+    padding:15px 30px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.navbar h2{margin:0;}
+
+.navbar a{
+    margin-right:15px;
+    color:black;
+    text-decoration:none;
+    font-weight:bold;
+}
+
+.logout{
+    border:1px solid black;
+    background:white;
+    padding:6px 12px;
+    cursor:pointer;
+}
+
+.container{
+    max-width:1100px;
+    margin:30px auto;
+    padding:20px;
+}
+
+.top-actions{
+    display:flex;
+    justify-content:space-between;
+    margin-bottom:20px;
+}
+
+.btn{
+    border:1px solid black;
+    background:white;
+    padding:6px 12px;
+    margin-left:5px;
+    cursor:pointer;
+}
+
+.card{
+    background:white;
+    border:1px solid black;
+    padding:15px;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+th,td{
+    border:1px solid black;
+    padding:8px;
+    text-align:left;
+}
+
+th{
+    background:#eee;
+}
+
+.print-btn{
+    border:1px solid black;
+    background:white;
+    padding:4px 8px;
+    cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="navbar">
+    <h2>Invoice App</h2>
+    <div>
+        <a href="/dashboard/">Dashboard</a>
+     
+        <button class="logout" onclick="logout()">Logout</button>
+    </div>
+</div>
+
+<div class="container">
+
+<div class="top-actions">
+    <h3>Invoices</h3>
+    <div>
+        <a href="/create-invoice/"><button class="btn">+ New Invoice</button></a>
+        <a href="/manage-clients/"><button class="btn">Clients</button></a>
+        <a href="/manage-products/"><button class="btn">Products</button></a>
+    </div>
+</div>
+
+<div class="card">
+<table>
+<thead>
+<tr>
+    <th>#</th>
+    <th>Invoice No</th>
+    <th>Client</th>
+    <th>Date</th>
+    <th>Due</th>
+    <th>Total</th>
+    <th>Status</th>
+    <th>Print</th>
+</tr>
+</thead>
+<tbody id="invoiceTable"></tbody>
+</table>
+</div>
+
+</div>
+
+<script>
+const API = "/api/";
+
+function getAuth(){
+    return { Authorization: "Bearer " + localStorage.getItem("token") };
+}
+
+async function loadInvoices(){
+    try{
+        const res = await fetch(API + "invoices/", { headers: getAuth() });
+        if(!res.ok){ logout(); return; }
+
+        const data = await res.json();
+        let html = "";
+
+        data.forEach((i, idx)=>{
+            const client = i.client?.name || i.client;
+            const total = i.total || 0;
+
+            html += `
+            <tr>
+                <td>${idx+1}</td>
+                <td>${i.invoice_number}</td>
+                <td>${client}</td>
+                <td>${i.date}</td>
+                <td>${i.due_date}</td>
+                <td>₹ ${parseFloat(total).toFixed(2)}</td>
+                <td>${i.status}</td>
+                <td>
+                    <button class="print-btn" onclick="printInvoice(${i.id})">Print</button>
+                </td>
+            </tr>`;
+        });
+
+        document.getElementById("invoiceTable").innerHTML = html;
+    }
+    catch(err){
+        console.error(err);
+        alert("Failed to load invoices");
+    }
+}
+
+/* 🔥 THIS IS THE FIX */
+function printInvoice(id){
+    fetch(`/api/invoice/${id}/pdf/`, {
+        headers: {
+            "Authorization": "Bearer " + localStorage.getItem("token")
+        }
+    })
+    .then(res => res.blob())
+    .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        window.open(url);
+    });
+}
+
+function logout(){
+    localStorage.clear();
+    location.href="/";
+}
+
+loadInvoices();
+</script>
+
+
+</body>
+</html>

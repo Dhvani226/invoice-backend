@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Add Product</title>
+
+<style>
+body{
+    background:#f3f3f3;
+    font-family:Segoe UI;
+    margin:0;
+}
+
+/* Page Layout */
+.container{
+    display:flex;
+    max-width:1100px;
+    margin:50px auto;
+    gap:25px;
+}
+
+/* Main Card */
+.card{
+    flex:1;
+    background:white;
+    padding:40px;
+    border-radius:20px;
+    box-shadow:0 10px 20px rgba(0,0,0,.08);
+}
+
+/* Sidebar */
+.sidebar{
+    width:320px;
+    background:white;
+    padding:25px;
+    border-radius:20px;
+    box-shadow:0 10px 20px rgba(0,0,0,.08);
+}
+
+h2{
+    margin-bottom:25px;
+    font-size:26px;
+    font-weight:800;
+    color:#111;
+}
+
+h3{
+    font-size:18px;
+    margin-bottom:15px;
+    color:#111;
+}
+
+/* Inputs */
+label{
+    font-size:14px;
+    font-weight:700;
+    color:#111;
+    display:block;
+    margin-bottom:6px;
+}
+
+input, select{
+    width:100%;
+    padding:12px;
+    border-radius:12px;
+    border:2px solid #ccc;
+    margin-bottom:15px;
+    font-size:15px;
+    color:#111;
+}
+
+input:focus, select:focus{
+    outline:none;
+    border-color:#000;
+    box-shadow:0 0 0 4px rgba(0,0,0,.1);
+}
+
+/* Summary */
+.summary{
+    background:#f9f9f9;
+    border-radius:14px;
+    padding:20px;
+    margin-top:10px;
+}
+
+.row{
+    display:flex;
+    justify-content:space-between;
+    font-weight:700;
+    color:#111;
+    margin-bottom:10px;
+}
+
+.row.total{
+    font-size:18px;
+    color:#000;
+    border-top:2px dashed #ccc;
+    padding-top:12px;
+}
+
+/* Button */
+button{
+    width:100%;
+    padding:14px;
+    background:#111;
+    border:none;
+    color:white;
+    border-radius:14px;
+    font-size:16px;
+    font-weight:800;
+    cursor:pointer;
+    margin-top:20px;
+}
+
+button:hover{
+    opacity:.9;
+}
+
+a{
+    display:block;
+    text-align:center;
+    margin-top:20px;
+    text-decoration:none;
+    color:#111;
+    font-weight:700;
+}
+
+/* Sidebar Section */
+.section{
+    margin-bottom:25px;
+}
+
+.toggle{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-weight:700;
+    color:#111;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<!-- MAIN PRODUCT CARD -->
+<div class="card">
+<h2>Add Product</h2>
+
+<label>Product Name</label>
+<input id="name" placeholder="Product Name">
+
+<label>Base Price (₹)</label>
+<input id="price" type="number" placeholder="Price" oninput="calculate()">
+
+<div class="summary">
+    <div class="row">
+        <span>Subtotal</span>
+        <span>₹ <span id="subtotal">0.00</span></span>
+    </div>
+    <div class="row">
+        <span>Tax</span>
+        <span>₹ <span id="taxAmount">0.00</span></span>
+    </div>
+    <div class="row">
+        <span>Discount</span>
+        <span>₹ <span id="discountAmount">0.00</span></span>
+    </div>
+    <div class="row total">
+        <span>Final Price</span>
+        <span>₹ <span id="finalPrice">0.00</span></span>
+    </div>
+</div>
+
+<button onclick="save()">Save Product</button>
+<a href="/dashboard/">Back to Dashboard</a>
+</div>
+
+<!-- RIGHT SIDEBAR -->
+<div class="sidebar">
+
+<h3>Customize</h3>
+
+<div class="section">
+    <label>Tax Type</label>
+    <select id="taxType" onchange="calculate()">
+        <option value="none">None</option>
+        <option value="on_total">On Total</option>
+    </select>
+
+    <label>Tax Label</label>
+    <input value="Tax">
+
+    <label>Tax Rate (%)</label>
+    <input id="taxRate" type="number" value="0" oninput="calculate()">
+
+    <div class="toggle">
+        <input type="checkbox" id="taxInclusive" onchange="calculate()">
+        <span>Tax Inclusive</span>
+    </div>
+</div>
+
+<hr>
+
+<div class="section">
+    <label>Discount Type</label>
+    <select id="discountType" onchange="calculate()">
+        <option value="none">None</option>
+        <option value="percent">Percentage</option>
+        <option value="flat">Flat Amount</option>
+    </select>
+
+    <label>Discount Value</label>
+    <input id="discountValue" type="number" value="0" oninput="calculate()">
+</div>
+
+</div>
+
+</div>
+
+<script>
+function calculate(){
+    const price = parseFloat(document.getElementById("price").value) || 0;
+    const taxRate = parseFloat(document.getElementById("taxRate").value) || 0;
+    const discountType = document.getElementById("discountType").value;
+    const discountValue = parseFloat(document.getElementById("discountValue").value) || 0;
+    const taxInclusive = document.getElementById("taxInclusive").checked;
+
+    let subtotal = price;
+    let taxAmount = 0;
+    let discountAmount = 0;
+
+    if(taxRate > 0){
+        taxAmount = taxInclusive ? (price * taxRate / (100 + taxRate)) : (price * taxRate / 100);
+    }
+
+    if(discountType === "percent"){
+        discountAmount = (subtotal + taxAmount) * discountValue / 100;
+    } else if(discountType === "flat"){
+        discountAmount = discountValue;
+    }
+
+    let finalPrice = subtotal + taxAmount - discountAmount;
+
+    document.getElementById("subtotal").innerText = subtotal.toFixed(2);
+    document.getElementById("taxAmount").innerText = taxAmount.toFixed(2);
+    document.getElementById("discountAmount").innerText = discountAmount.toFixed(2);
+    document.getElementById("finalPrice").innerText = finalPrice.toFixed(2);
+}
+
+function save(){
+    alert("Save function works exactly as before — link your existing API here!");
+}
+</script>
+
+</body>
+</html>

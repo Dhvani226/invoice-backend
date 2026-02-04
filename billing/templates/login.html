@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Invoice App</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f3f3f3;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            width: 100%;
+            max-width: 400px;
+        }
+        h2 {
+            text-align: center;
+            color: #111;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #111;
+            font-weight: 600;
+        }
+        input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #111;
+            transition: border-color 0.3s;
+        }
+        input:focus {
+            outline: none;
+            border-color: #000;
+            box-shadow: 0 0 0 3px rgba(0,0,0,0.1);
+        }
+        button {
+            width: 100%;
+            padding: 14px;
+            background: #111;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.2s;
+        }
+        button:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+        .error-msg {
+            color: #e74c3c;
+            text-align: center;
+            margin-top: 15px;
+            display: none;
+        }
+        .register-link {
+            text-align: center;
+            margin-top: 20px;
+            color: #111;
+        }
+        .register-link a {
+            color: #111;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .register-link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h2>Invoice App</h2>
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" placeholder="Enter your username" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="Enter your password" required>
+            </div>
+            <button type="submit">Login</button>
+            <p class="error-msg" id="errorMsg"></p>
+        </form>
+        <p class="register-link">
+            Don't have an account? <a href="#">Register</a>
+        </p>
+    </div>
+
+    <script>
+        // Check if already logged in
+        if (localStorage.getItem('token')) {
+            window.location.href = '/dashboard/';
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            login();
+        });
+
+        function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorMsg = document.getElementById('errorMsg');
+
+            fetch('/api/login/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.access) {
+                    localStorage.setItem('token', data.access);
+                    localStorage.setItem('refresh', data.refresh);
+                    window.location.href = '/dashboard/';
+                } else {
+                    errorMsg.textContent = 'Invalid username or password';
+                    errorMsg.style.display = 'block';
+                }
+            })
+            .catch(err => {
+                console.error('Error:', err);
+                errorMsg.textContent = 'Connection error. Please try again.';
+                errorMsg.style.display = 'block';
+            });
+        }
+    </script>
+</body>
+</html>
